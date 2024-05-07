@@ -499,14 +499,18 @@ class SubmissionContent(
 
     @transaction.atomic()
     def form_valid(self, form):
+        messages.success(self.request, "DEBUG: The proposal form is valid.")
         created = not self.object
         self.object = form.instance
         self._questions_form.submission = self.object
         if not self._questions_form.is_valid():
+            messages.success(self.request, f"DEBUG: The proposal question form is invalid: {self._questions_form.errors}.")
             return self.get(self.request, *self.args, **self.kwargs)
         form.instance.event = self.request.event
         form.save()
+        messages.success(self.request, "DEBUG: The proposal form has been saved.")
         self._questions_form.save()
+        messages.success(self.request, "DEBUG: The proposal question form has been saved.")
 
         if created:
             email = form.cleaned_data["speaker"]
@@ -535,12 +539,14 @@ class SubmissionContent(
                 form.instance.speakers.add(speaker)
         else:
             formset_result = self.save_formset(form.instance)
+            messages.success(self.request, "DEBUG: The formset has been saved.")
             if not formset_result:
                 return self.get(self.request, *self.args, **self.kwargs)
             messages.success(self.request, _("The proposal has been updated!"))
         if form.has_changed():
             action = "pretalx.submission." + ("create" if created else "update")
             form.instance.log_action(action, person=self.request.user, orga=True)
+            messages.success(self.request, "DEBUG: The change has been logged.")
             self.request.event.cache.set("rebuild_schedule_export", True, None)
         return redirect(self.get_success_url())
 
